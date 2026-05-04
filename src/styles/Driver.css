@@ -1,0 +1,124 @@
+/* CONTAINER */
+.driver-container {
+  padding: 20px;
+  text-align: center;
+}
+
+/* FORM */
+.driver-card {
+  max-width: 500px;
+  margin: 0 auto 20px;
+  padding: 20px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+
+.driver-card h3 {
+  margin-top: 0;
+  color: #374151;
+}
+
+.driver-card input,
+.driver-card select {
+  width: 100%;
+  padding: 10px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.driver-card button {
+  width: 100%;
+  padding: 10px 15px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* GRID */
+.trip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  justify-content: center;
+}
+
+/* CARD */
+.trip-card {
+  width: 250px;
+  padding: 15px;
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.08);
+}
+
+/* ACTIONS */
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.actions button {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.actions button:first-child {
+  background: #10b981;
+  color: white;
+}
+
+.delete {
+  background: #ef4444 !important;
+  color: white;
+}
+
+/* MESSAGE */
+.info {
+  margin-bottom: 15px;
+  padding: 10px;
+  border-radius: 8px;
+  background: #e0f2fe;
+}
+
+/* NOTIFICATIONS */
+.notifications {
+  margin-bottom: 20px;
+  padding: 15px;
+  border-radius: 8px;
+  background: #fef3c7;
+  border: 1px solid #f59e0b;
+}
+
+.notifications h3 {
+  margin-top: 0;
+  color: #92400e;
+}
+
+.notification {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #fbbf24;
+}
+
+.notification:last-child {
+  border-bottom: none;
+}
+
+.notification button {
+  background: #dc2626;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
