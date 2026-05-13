@@ -23,7 +23,13 @@ export function initDB() {
 export async function addData(store, data) {
   const db = await initDB();
   const tx = db.transaction(store, "readwrite");
-  tx.objectStore(store).add(data);
+  tx.objectStore(store).put(data);
+}
+
+export async function deleteData(store, id) {
+  const db = await initDB();
+  const tx = db.transaction(store, "readwrite");
+  tx.objectStore(store).delete(id);
 }
 
 export async function getAllData(store) {

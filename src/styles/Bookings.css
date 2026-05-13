@@ -127,6 +127,9 @@
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 1000;
 }
 
 /* MODAL BOX */
@@ -135,6 +138,8 @@
   padding: 25px;
   border-radius: 18px;
   width: min(100%, 380px);
+  max-height: 90vh;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -150,6 +155,7 @@
   border: 1px solid #d1d5db;
   font-size: 0.96rem;
   color: #0f172a;
+  box-sizing: border-box;
 }
 
 .modal-box textarea {

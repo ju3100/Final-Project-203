@@ -1,20 +1,27 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
+import { FiMenu, FiX } from "react-icons/fi";
 import { api } from "../api/APIBook";
 import "../styles/Passenger.css";
+import { io } from "socket.io-client";
+import LiveMap from "../components/LiveMap";
+
+const socket = io("http://localhost:5001");
 
 export default function Passenger() {
-  // GET LOGGED USER
-  const currentUser =
+  // GET LOGGED USER (Initialize once)
+  const [currentUser] = useState(() => 
     JSON.parse(localStorage.getItem("user")) ||
-    JSON.parse(sessionStorage.getItem("user"));
+    JSON.parse(sessionStorage.getItem("user"))
+  );
 
   // PASSENGER PROFILE
   const passenger = {
     username: currentUser?.username || "",
     contact: currentUser?.contact || "",
-    email: currentUser?.email || "",
-    fullName: currentUser?.fullName || ""
+    email: currentUser?.email || ""
   };
+
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // AVAILABLE TRIPS
   const [trips, setTrips] = useState([]);
@@ -44,13 +51,13 @@ export default function Passenger() {
     api.getTrips()
       .then(data => {
         const now = new Date();
-        const available = data.filter(t => {
+        const active = data.filter(t => {
           const inFuture = t.type === "bus"
             ? new Date(t.time) > now
             : t.endTime ? new Date(t.endTime) > now : false;
-          return t.status !== "Full" && t.status !== "Booked" && inFuture;
+          return inFuture && t.status !== "Completed";
         });
-        setTrips(available);
+        setTrips(active);
       })
       .catch(() => setMessage("Failed to load trips"))
       .finally(() => setLoading(false));
@@ -71,13 +78,15 @@ export default function Passenger() {
     loadTrips();
     loadBookings();
 
-    // 🔥 AUTO REFRESH
-    const interval = setInterval(() => {
-      loadTrips();
-      loadBookings();
-    }, 10000); // Less frequent for passengers
+    socket.on("tripLocationUpdated", (data) => {
+      setTrips(prevTrips => prevTrips.map(t => 
+        t.id === data.tripId ? { ...t, location: data.location } : t
+      ));
+    });
 
-    return () => clearInterval(interval);
+    return () => {
+      socket.off("tripLocationUpdated");
+    };
   }, [loadTrips, loadBookings]);
 
   // ✅ BOOK TRIP
@@ -106,9 +115,50 @@ export default function Passenger() {
   };
 
   return (
-    <div className="passenger-container">
+    <div className="passenger-container fade-in">
 
-      <h2 className="title">Passenger Dashboard</h2>
+      <div className="role-header">
+        <h2 className="title">Passenger Dashboard</h2>
+        <button
+          className="menu-toggle"
+          onClick={() => setMenuOpen((prev) => !prev)}
+          aria-label="Toggle dashboard menu"
+        >
+          {menuOpen ? <FiX size={20} /> : <FiMenu size={20} />}
+        </button>
+      </div>
+
+      {menuOpen && (
+        <div className="role-menu">
+          <button
+            className={activeSection === "summary" ? "active" : ""}
+            onClick={() => {
+              setActiveSection("summary");
+              setMenuOpen(false);
+            }}
+          >
+            Summary
+          </button>
+          <button
+            className={activeSection === "bookings" ? "active" : ""}
+            onClick={() => {
+              setActiveSection("bookings");
+              setMenuOpen(false);
+            }}
+          >
+            Booking History
+          </button>
+          <button
+            className={activeSection === "trips" ? "active" : ""}
+            onClick={() => {
+              setActiveSection("trips");
+              setMenuOpen(false);
+            }}
+          >
+            Available Trips
+          </button>
+        </div>
+      )}
 
       <div className="passenger-tabs">
         <button
@@ -132,12 +182,8 @@ export default function Passenger() {
       </div>
 
       {activeSection === "summary" && (
-        <div className="passenger-summary-card">
+        <div className="passenger-summary-card fade-in">
           <h3>Profile Summary</h3>
-          <div className="summary-row">
-            <span>Full Name</span>
-            <strong>{passenger.fullName || "Not available"}</strong>
-          </div>
           <div className="summary-row">
             <span>Username</span>
             <strong>{passenger.username || "Not available"}</strong>
@@ -174,14 +220,20 @@ export default function Passenger() {
           {bookings.length === 0 ? (
             <p>No bookings yet</p>
           ) : (
-            <div className="booking-grid">
-              {bookings.map(b => (
-                <div key={b.id} className="booking-card">
-                  <h4>Trip #{b.tripId}</h4>
-                  <p><strong>Status:</strong> {b.status}</p>
-                  <p><strong>Passengers:</strong> {b.passengers || 1}</p>
-                </div>
-              ))}
+            <div className="booking-grid fade-in">
+              {bookings.map(b => {
+                const trip = trips.find(t => t.id === b.tripId);
+                return (
+                  <div key={b.id} className="booking-card">
+                    <h4>Trip #{b.tripId}</h4>
+                    <p><strong>Status:</strong> {b.status}</p>
+                    <p><strong>Passengers:</strong> {b.passengers || 1}</p>
+                    {trip && trip.location && trip.location.lat && (
+                      <LiveMap location={trip.location} destinationText={`Driver: ${trip.driver}`} />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -191,13 +243,13 @@ export default function Passenger() {
         <div className="trips-section">
           <h3>Available Trips</h3>
 
-          <div className="trip-grid">
-            {trips.length === 0 ? (
+          <div className="trip-grid fade-in">
+            {trips.filter(t => t.status !== "Full" && t.status !== "Booked").length === 0 ? (
               <p>No available trips</p>
             ) : (
-              trips.map(trip => (
+              trips.filter(t => t.status !== "Full" && t.status !== "Booked").map(trip => (
                 <div key={trip.id} className="trip-card">
-                  <h3>{trip.type.toUpperCase()} {trip.busSize && `- ${trip.busSize}`}</h3>
+                  <h3>{trip.type.toUpperCase()} {trip.vehicleType ? `- ${trip.vehicleType}` : (trip.busSize ? `- ${trip.busSize}` : '')}</h3>
                   
                   {trip.type === "bus" ? (
                     <>
@@ -216,6 +268,10 @@ export default function Passenger() {
                       <p><strong>Status:</strong> {trip.status}</p>
                       <p><strong>Availability:</strong> {trip.availability === "available" ? "Available for Service" : "Not Available"}</p>
                     </>
+                  )}
+
+                  {trip.location && trip.location.lat && (
+                    <LiveMap location={trip.location} destinationText={`Driver: ${trip.driver}`} />
                   )}
 
                   <button

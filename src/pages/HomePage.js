@@ -62,7 +62,7 @@ export default function Home() {
               <img src={s.img} alt={s.name} />
               <div className="action-buttons">
   <div className="book-now">
-    <button onClick={() => navigate("/")}>View More</button>
+    <button onClick={() => navigate("/services")}>View More</button>
   </div>
 
   <div className="book-now">

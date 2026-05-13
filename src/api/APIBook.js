@@ -13,8 +13,13 @@ export const api = {
     try {
       const data = await fetch(`${BASE_URL}/trips`).then(handleResponse);
       // Persist to IndexedDB
-      const { addData } = await import("../utils/indexDB");
+      const { addData, initDB } = await import("../utils/indexDB");
+      const db = await initDB();
+      db.transaction("trips", "readwrite").objectStore("trips").clear();
+      
       for (const trip of data) {
+        // If the user wants to remove booked trips from IndexedDB:
+        // if (trip.status === "Booked" || trip.status === "Full") continue;
         await addData("trips", trip);
       }
       return data;
@@ -83,7 +88,10 @@ export const api = {
     try {
       const data = await fetch(`${BASE_URL}/bookings`).then(handleResponse);
       // Persist to IndexedDB
-      const { addData } = await import("../utils/indexDB");
+      const { addData, initDB } = await import("../utils/indexDB");
+      const db = await initDB();
+      db.transaction("bookings", "readwrite").objectStore("bookings").clear();
+
       for (const booking of data) {
         await addData("bookings", booking);
       }
@@ -94,6 +102,14 @@ export const api = {
       return await getAllData("bookings");
     }
   },
+
+  getAdminData: async () =>
+    fetch(`${BASE_URL}/admin/data`).then(handleResponse),
+
+  deleteBooking: (id) =>
+    fetch(`${BASE_URL}/bookings/${id}`, {
+      method: "DELETE"
+    }).then(handleResponse),
 
   updateBooking: (id, data) =>
     fetch(`${BASE_URL}/bookings/${id}`, {
