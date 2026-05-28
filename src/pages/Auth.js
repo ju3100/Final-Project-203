@@ -14,7 +14,6 @@ export default function Auth({ setUser }) {
     confirmPassword: "",
     role: "Passenger",
     contact: "",
-    fullName: ""
   });
 
   const navigate = useNavigate();
@@ -24,14 +23,16 @@ export default function Auth({ setUser }) {
     setError("");
 
     if (isLogin) {
+
       // LOGIN VALIDATION
       if (!form.username || !form.password) {
         setError("Please enter username and password");
         return;
       }
     } else {
+
       // SIGNUP VALIDATION
-      if (!form.username || !form.fullName || !form.email || !form.password || !form.confirmPassword) {
+      if (!form.username || !form.email || !form.password || !form.confirmPassword) {
         setError("Please fill all required fields");
         return;
       }
@@ -71,12 +72,11 @@ export default function Auth({ setUser }) {
         };
       } else {
         payload = {
-          username: form.role === "Driver" ? form.email : form.username,
+          username: form.username,
           email: form.email,
           password: form.password,
           role: form.role,
           contact: form.contact,
-          fullName: form.fullName
         };
       }
 
@@ -93,14 +93,14 @@ export default function Auth({ setUser }) {
         return;
       }
 
-      // ✅ Store user data
+      // Store user data
       setUser(data.user);
       localStorage.setItem("user", JSON.stringify(data.user));
       sessionStorage.setItem("user", JSON.stringify(data.user));
 
       const role = data.user.role;
 
-      // ✅ ROLE-BASED NAVIGATION
+      // ROLE-BASED NAVIGATION
       if (role === "Driver") {
         navigate("/driver", { replace: true });
       } else if (role === "Admin") {
@@ -125,7 +125,7 @@ export default function Auth({ setUser }) {
         <div className="logo1-container">
           <img src={logo1} alt="App Logo" className="logo1"/>
         </div>
-        <h1 className="auth-welcome">Welcome</h1>
+        <h1 className="auth-welcome">Vanuatu Smart Transport</h1>
         <h2>{isLogin ? "Login to your Account" : "Signup"}</h2>
 
         {error && <p className="auth-error">{error}</p>}
@@ -161,13 +161,13 @@ export default function Auth({ setUser }) {
               }
             />
 
-            <input
+            {/* <input
               placeholder="Full Name"
               value={form.fullName}
               onChange={(e) =>
                 setForm({ ...form, fullName: e.target.value })
               }
-            />
+            /> */}
 
             <input
               type="email"

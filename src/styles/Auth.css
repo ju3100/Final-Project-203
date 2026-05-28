@@ -5,11 +5,17 @@
   align-items: center;
   justify-content: center;
   padding: 20px;
+  
+  
 
   /* Animated gradient */
-  background: linear-gradient(-45deg, #0ea5e9, #22c55e, #3b82f6, #5bdeff);
-  background-size: 400% 400%;
-  animation: gradientBG 12s ease infinite;
+  /* background: linear-gradient(-45deg, #0ea5e9, #22c55e, #3b82f6, #5bdeff); */
+  background-image: url("../images/image-3.webp");
+                    
+  
+ 
+  background-size: 70%;
+  animation: gradientBG 80s ease infinite;
 }
 
 /* BACKGROUND ANIMATION */
@@ -23,8 +29,8 @@
 .auth-card {
   width: 100%;
   max-width: 380px;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(14px);
+  /* background: rgba(255, 255, 255, 0.92); */
+  backdrop-filter: blur(1px);
   padding: 28px 24px;
   border-radius: 18px;
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.2);
@@ -55,7 +61,7 @@
 }
 
 .logo1 {
-  width: 80px;
+  width: 100px;
   transition: transform 0.3s ease;
 }
 
@@ -65,22 +71,22 @@
 
 /* TITLE */
 .auth-card h1 {
-  color: #0f172a;
-  margin-bottom: 4px;
+  color: #fff;
+  margin-bottom: 2px;
   font-size: 1.5rem;
   font-weight: 700;
   letter-spacing: -0.5px;
 }
 
 .auth-card h2 {
-  color: #64748b;
+  color: #f3f4f7;
   margin-bottom: 18px;
   font-size: 0.9rem;
   font-weight: 500;
 }
 
 .auth-welcome {
-  color: #1e293b;
+  color: #0c8680;
   font-weight: 600;
 }
 
@@ -92,9 +98,9 @@
   margin-bottom: 12px;
   border-radius: 8px;
   border: 1.5px solid #e2e8f0;
-  background: #ffffff;
+  background: #ffffff1a;
   font-size: 0.9rem;
-  color: #334155;
+  color: #ffffff;
   transition: all 0.25s ease;
 }
 
@@ -164,7 +170,7 @@
 /* SWITCH */
 .auth-switch {
   margin-top: 14px;
-  color: #64748b;
+  color: #ffffff;
   cursor: pointer;
   font-size: 0.85rem;
   transition: all 0.2s ease;
@@ -188,6 +194,7 @@
 
   .auth-card h1 {
     font-size: 1.3rem;
+    
   }
 
   .auth-card h2 {

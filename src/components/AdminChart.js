@@ -13,14 +13,22 @@ import {
 } from "recharts";
 import "../styles/adminChart.css";
 
-export default function AdminChart({ bookings = [] }) {
+export default function AdminChart({ bookings = [], trips = [] }) {
   const [filter, setFilter] = useState("all");
+
+  // ✅ Combine bookings with their trip type
+  const bookingsWithType = useMemo(() => {
+    return bookings.map(b => {
+      const trip = trips.find(t => String(t.id) === String(b.tripId));
+      return { ...b, type: trip ? trip.type : "unknown", date: b.date || (trip ? new Date(trip.time || trip.startTime || Date.now()).toLocaleDateString() : "Unknown") };
+    });
+  }, [bookings, trips]);
 
   // ✅ Filtered bookings (LIVE updates automatically)
   const filteredBookings = useMemo(() => {
-    if (filter === "all") return bookings;
-    return bookings.filter((b) => b.type === filter);
-  }, [bookings, filter]);
+    if (filter === "all") return bookingsWithType;
+    return bookingsWithType.filter((b) => b.type === filter);
+  }, [bookingsWithType, filter]);
 
   // ✅ Bar chart data (by type)
   const types = ["bus", "taxi", "private"];
@@ -44,16 +52,16 @@ export default function AdminChart({ bookings = [] }) {
   );
 
   // ✅ Revenue (example: each booking has price)
-  const totalRevenue = filteredBookings.reduce(
-    (sum, b) => sum + (b.price || 0),
-    0
-  );
+  // const totalRevenue = filteredBookings.reduce(
+  //   (sum, b) => sum + (b.price || 0),
+  //   0
+  // );
 
   return (
     <div className="chart-card">
       <h3 className="chart-title">System Overview</h3>
 
-      {/* 🎯 FILTER */}
+      {/* FILTER */}
       <div className="chart-filter">
         <select value={filter} onChange={(e) => setFilter(e.target.value)}>
           <option value="all">All Services</option>
@@ -63,13 +71,13 @@ export default function AdminChart({ bookings = [] }) {
         </select>
       </div>
 
-      {/* 📊 SUMMARY */}
+      {/* SUMMARY */}
       <div className="chart-summary">
         <p>Total Bookings: {filteredBookings.length}</p>
-        <p>Total Revenue: ${totalRevenue.toFixed(2)}</p>
+        {/* <p>Total Revenue: ${totalRevenue.toFixed(2)}</p> */}
       </div>
 
-      {/* 📊 BAR CHART */}
+      {/* BAR CHART */}
       <h4>Bookings by Service</h4>
       <ResponsiveContainer width="100%" height={250}>
         <BarChart data={barData}>

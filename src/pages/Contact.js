@@ -32,7 +32,7 @@ export default function Contact() {
   };
 
   return (
-    <div className="container">
+    <div className="contact-page">
 
       <div className="contact-card">
 

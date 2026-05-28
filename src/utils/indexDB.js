@@ -1,6 +1,6 @@
 export function initDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("TransportDB", 2);
+    const request = indexedDB.open("vanuatu_transportdb", 2);
 
     request.onupgradeneeded = () => {
       const db = request.result;
@@ -23,7 +23,13 @@ export function initDB() {
 export async function addData(store, data) {
   const db = await initDB();
   const tx = db.transaction(store, "readwrite");
-  tx.objectStore(store).add(data);
+  tx.objectStore(store).put(data);
+}
+
+export async function deleteData(store, id) {
+  const db = await initDB();
+  const tx = db.transaction(store, "readwrite");
+  tx.objectStore(store).delete(id);
 }
 
 export async function getAllData(store) {

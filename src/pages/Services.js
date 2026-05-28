@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import taxiImg from "../images/Taxi.jpg";
 import busImg from "../images/bus.jpg";
 import hireImg from "../images/Private-Hire.jpg";
+import "../styles/service.css";
 
 
 export default function Services() {

@@ -1,246 +1,569 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
+const http = require("http");
+const { Server } = require("socket.io");
+const { Pool } = require("pg");
+const bcrypt = require("bcrypt");
+
 const ROLES = ["Passenger", "Driver", "Admin"];
 
+// ================= DATABASE =================
+const pool = new Pool({
+  user: process.env.DB_USER || "postgres",
+  host: process.env.DB_HOST || "localhost",
+  database: process.env.DB_NAME || "vanuatu_transportbd",
+  password: process.env.DB_PASSWORD || "Unvtest!@25",
+  port: Number(process.env.DB_PORT || 5432)
+});
+
+pool.connect()
+  .then(() => console.log("PostgreSQL connected"))
+  .catch(err => console.error("Database connection error:", err));
+
+// ================= EXPRESS =================
 const app = express();
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"]
+  }
+});
+
 app.use(cors());
 app.use(express.json());
 
-// ================= DATA =================
-let users = [];
-let trips = [];
-let bookings = [];
-
 // ================= AUTH =================
-app.post("/signup", (req, res) => {
-  const user = req.body;
 
-  if (!user.username || !user.email || !user.password || !user.role) {
-    return res.status(400).json({ message: "All required fields must be provided" });
-  }
+// SIGNUP
+app.post("/signup", async (req, res) => {
+  try {
+    const user = req.body;
 
-  // role validation
-  if (!ROLES.includes(user.role)) {
-    return res.status(400).json({ message: "Invalid role" });
-  }
-
-  // Email validation
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!emailRegex.test(user.email)) {
-    return res.status(400).json({ message: "Invalid email format" });
-  }
-
-  // Driver email validation
-  if (user.role === "Driver" && !user.email.endsWith("@driver.vu")) {
-    return res.status(400).json({ message: "Driver email must end with @driver.vu" });
-  }
-
-  // Password validation
-  if (user.password.length < 6) {
-    return res.status(400).json({ message: "Password must be at least 6 characters" });
-  }
-
-  // Check if username or email already exists
-  const usernameExists = users.find(u => u.username === user.username);
-  const emailExists = users.find(u => u.email === user.email);
-
-  if (usernameExists) {
-    return res.status(400).json({ message: "Username already exists" });
-  }
-
-  if (emailExists) {
-    return res.status(400).json({ message: "Email already registered" });
-  }
-
-  // Store complete user data
-  users.push({
-    ...user,
-    id: Date.now(),
-    createdAt: new Date().toISOString()
-  });
-
-  res.json({
-    user: {
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      fullName: user.fullName,
-      contact: user.contact
+    if (!user.username || !user.email || !user.password || !user.role) {
+      return res.status(400).json({
+        message: "All required fields must be provided"
+      });
     }
-  });
-});
 
-app.post("/login", (req, res) => {
-  const { username, password } = req.body;
-
-  const user = users.find(
-    u => u.username === username && u.password === password
-  );
-
-  if (!user) {
-    return res.status(400).json({ message: "Invalid username or password" });
-  }
-
-  res.json({
-    user: {
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      contact: user.contact,
-      fullName: user.fullName
+    if (!ROLES.includes(user.role)) {
+      return res.status(400).json({
+        message: "Invalid role"
+      });
     }
-  });
-});
 
-// ================= TRIPS (DRIVER SYSTEM) =================
-app.post("/trips", (req, res) => {
-  const capacity = Math.max(0, Number(req.body.capacity) || 0);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-  if (!req.body.type) {
-    return res.status(400).json({ success: false, message: "Trip type is required" });
-  }
+    if (!emailRegex.test(user.email)) {
+      return res.status(400).json({
+        message: "Invalid email format"
+      });
+    }
 
-  if (req.body.type === "bus" && !req.body.time) {
-    return res.status(400).json({ success: false, message: "Bus trip time is required" });
-  }
+    if (
+      user.role === "Driver" &&
+      !user.email.endsWith("@driver.vu")
+    ) {
+      return res.status(400).json({
+        message: "Driver email must end with @driver.vu"
+      });
+    }
 
-  if (req.body.type !== "bus" && (!req.body.startTime || !req.body.endTime)) {
-    return res.status(400).json({ success: false, message: "Availability start and end time are required" });
-  }
+    if (user.password.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters"
+      });
+    }
 
-  const trip = {
-    id: Date.now(),
-    type: req.body.type,
-    driver: req.body.driver || "Unknown",
-    from: req.body.type === "bus" ? req.body.from : undefined,
-    to: req.body.type === "bus" ? req.body.to : undefined,
-    time: req.body.type === "bus" ? req.body.time : undefined,
-    startTime: req.body.type !== "bus" ? req.body.startTime : undefined,
-    endTime: req.body.type !== "bus" ? req.body.endTime : undefined,
-    capacity: req.body.type === "bus" ? capacity : 1,
-    booked: 0,
-    status: req.body.status || (req.body.type === "bus" ? "Available" : "On Service"),
-    busSize: req.body.type === "bus" ? req.body.busSize : undefined,
-    availability: req.body.type === "bus" ? undefined : req.body.availability,
-    contact: req.body.contact,
-    email: req.body.email,
-    location: req.body.location
-  };
+    // Check existing user
+    const existingUser = await pool.query(
+      `
+      SELECT *
+      FROM users
+      WHERE username = $1 OR email = $2
+      `,
+      [user.username, user.email]
+    );
 
-  trips.push(trip);
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({
+        message: "Username or email already exists"
+      });
+    }
 
-  res.json({ success: true, trip });
-});
+    // Hash password
+    const hashedPassword = await bcrypt.hash(user.password, 10);
 
-app.put("/trips/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const index = trips.findIndex(t => t.id === id);
+    // Insert user
+    const result = await pool.query(
+      `
+      INSERT INTO users
+      (username, email, password_hash, role, contact)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, username, email, role, contact
+      `,
+      [
+        user.username,
+        user.email,
+        hashedPassword,
+        user.role,
+        user.contact
+      ]
+    );
 
-  if (index === -1)
-    return res.status(404).json({ success: false, message: "Trip not found" });
+    res.json({
+      success: true,
+      user: result.rows[0]
+    });
 
-  trips[index] = {
-    ...trips[index],
-    ...req.body
-  };
+  } catch (err) {
+    console.error(err);
 
-  res.json({ success: true, trip: trips[index] });
-});
-
-app.delete("/trips/:id", (req, res) => {
-  const id = Number(req.params.id);
-
-  trips = trips.filter(t => t.id !== id);
-  bookings = bookings.filter(b => b.tripId !== id);
-
-  res.json({ success: true });
-});
-
-// ================= BOOKINGS (FINAL BOSS LOGIC) =================
-app.post("/bookings", (req, res) => {
-  const trip = trips.find(t => t.id === req.body.tripId);
-
-  if (!trip) {
-    return res.status(404).json({
-      success: false,
-      message: "Trip not found"
+    res.status(500).json({
+      message: "Server error"
     });
   }
+});
 
-  // For taxi/private availabilities, mark as booked immediately
-  if (trip.type === "taxi" || trip.type === "private") {
-    trip.status = "Booked";
-  } else {
-    // For bus trips, check capacity
-    const passengers = req.body.passengers || 1;
+// LOGIN
+app.post("/login", async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-    if (trip.booked + passengers > trip.capacity) {
-      trip.status = "Full";
+    // Find user
+    const result = await pool.query(
+      `
+      SELECT *
+      FROM users
+      WHERE username = $1
+      `,
+      [username]
+    );
+
+    const user = result.rows[0];
+
+    // User not found
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid username or password"
+      });
+    }
+
+    // Compare password
+    const validPassword = await bcrypt.compare(
+      password,
+      user.password_hash
+    );
+
+    if (!validPassword) {
+      return res.status(400).json({
+        message: "Invalid username or password"
+      });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        contact: user.contact
+      }
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
+});
+
+// ================= TRIPS =================
+
+// CREATE TRIP
+app.post("/trips", async (req, res) => {
+  try {
+    const capacity = Math.max(
+      0,
+      Number(req.body.capacity) || 0
+    );
+
+    // Look up driver_id using req.body.driver (username)
+    let driver_id = null;
+    if (req.body.driver) {
+      const userRes = await pool.query(
+        `SELECT id FROM users WHERE username = $1`,
+        [req.body.driver]
+      );
+      if (userRes.rows.length > 0) {
+        driver_id = userRes.rows[0].id;
+      } else {
+        return res.status(400).json({ success: false, message: "Driver not found" });
+      }
+    }
+
+    const result = await pool.query(
+      `
+      INSERT INTO trips (
+        type,
+        driver_id,
+        pickup_location,
+        destination_location,
+        trip_time,
+        start_time,
+        end_time,
+        capacity,
+        booked,
+        status,
+        bus_size,
+        vehicle_type,
+        availability,
+        contact,
+        email,
+        location
+      )
+      VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
+        $11,$12,$13,$14,$15,$16
+      )
+      RETURNING id, type, driver_id, pickup_location as "from", destination_location as "to", 
+        trip_time as time, start_time as "startTime", end_time as "endTime", 
+        capacity, booked, status, bus_size as "busSize", vehicle_type as "vehicleType", 
+        availability, contact, email, location
+      `,
+      [
+        req.body.type || null,
+        driver_id,
+        req.body.from || 'N/A',
+        req.body.to || 'N/A',
+        req.body.time || null,
+        req.body.startTime || null,
+        req.body.endTime || null,
+        capacity,
+        0,
+        req.body.status || "scheduled",
+        req.body.busSize || null,
+        req.body.vehicleType || null,
+        req.body.scheduled || null,
+        req.body.contact || null,
+        req.body.email || null,
+        req.body.location || null
+      ]
+    );
+
+    const trip = result.rows[0];
+    trip.driver = req.body.driver; // Add string username back for frontend
+
+    res.json({
+      success: true,
+      trip: trip
+    });
+
+  } catch (err) {
+    console.error("CREATE TRIP ERROR:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error: " + err.message
+    });
+  }
+});
+
+// GET ALL TRIPS
+app.get("/trips", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT t.id, t.type, u.username as driver, t.pickup_location as "from", 
+       t.destination_location as "to", t.trip_time as time, t.start_time as "startTime", 
+       t.end_time as "endTime", t.capacity, t.booked, t.status, t.bus_size as "busSize", 
+       t.vehicle_type as "vehicleType", t.availability, t.contact, t.email, t.location
+       FROM trips t
+       LEFT JOIN users u ON t.driver_id = u.id
+       ORDER BY t.id DESC`
+    );
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error("GET TRIPS ERROR:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+});
+
+// UPDATE TRIP
+app.put("/trips/:id", async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    const result = await pool.query(
+      `
+      UPDATE trips
+      SET status = $1
+      WHERE id = $2
+      RETURNING *
+      `,
+      [req.body.status, id]
+    );
+
+    res.json({
+      success: true,
+      trip: result.rows[0]
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
+});
+
+// DELETE TRIP
+app.delete("/trips/:id", async (req, res) => {
+  try {
+    await pool.query(
+      `DELETE FROM trips WHERE id = $1`,
+      [req.params.id]
+    );
+
+    res.json({
+      success: true
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
+});
+
+// ================= BOOKINGS =================
+
+// CREATE BOOKING
+app.post("/bookings", async (req, res) => {
+  try {
+    let trip = null;
+    
+    // Check if tripId is provided (e.g., bus/taxi from Bookings.js)
+    if (req.body.tripId) {
+      const tripResult = await pool.query(
+        `SELECT * FROM trips WHERE id = $1`,
+        [req.body.tripId]
+      );
+      trip = tripResult.rows[0];
+
+      if (!trip) {
+        return res.status(404).json({
+          success: false,
+          message: "Trip not found"
+        });
+      }
+    }
+
+    const passengers = Number(req.body.passengers) || 1;
+
+    // Check capacity if trip exists
+    if (trip && trip.booked + passengers > trip.capacity) {
       return res.status(400).json({
         success: false,
         message: "Not enough seats available"
       });
     }
 
-    // increase booking count
-    trip.booked += req.body.passengers || 1;
-
-    // 🔄 update status
-    if (trip.booked >= trip.capacity) {
-      trip.status = "Full";
-    } else {
-      trip.status = "Available";
+    // Try to resolve user_id from username if possible
+    let user_id = null;
+    if (req.body.user) {
+      const userRes = await pool.query(`SELECT id FROM users WHERE username = $1 OR email = $1`, [req.body.user]);
+      if (userRes.rows.length > 0) {
+        user_id = userRes.rows[0].id;
+      }
     }
+
+
+    
+    let vehicleInfo = req.body.vehicle;
+    if (!vehicleInfo && trip) {
+      vehicleInfo = trip.vehicle_type || trip.bus_size || trip.type;
+    }
+
+    // Create booking
+    // Note: If schema doesn't have passenger_name, we rely on user_id, vehicle, price, passengers, status.
+    const bookingResult = await pool.query(
+      `
+      INSERT INTO bookings (
+        trip_id,
+        user_id,
+        vehicle,
+        price,
+        passengers,
+        status
+      )
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, trip_id as "tripId", user_id, vehicle, price, passengers, status
+      `,
+      [
+        req.body.tripId || null,
+        user_id,
+        vehicleInfo || null,
+        req.body.price || null,
+        passengers,
+        req.body.status || "pending"
+      ]
+    );
+
+    // Update trip booked seats if it's tied to a specific trip
+    if (trip) {
+      await pool.query(
+        `
+        UPDATE trips
+        SET booked = booked + $1
+        WHERE id = $2
+        `,
+        [passengers, req.body.tripId]
+      );
+    }
+
+    const newBooking = bookingResult.rows[0];
+    newBooking.user = req.body.user; // attach back for frontend
+
+    res.json({
+      success: true,
+      booking: newBooking
+    });
+
+  } catch (err) {
+    console.error("CREATE BOOKING ERROR:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
   }
-
-  const booking = {
-    id: Date.now(),
-    ...req.body,
-    status: req.body.status || "pending"
-  };
-
-  bookings.push(booking);
-
-  res.json({
-    success: true,
-    booking,
-    tripStatus: trip.status,
-    remainingSeats: trip.capacity - trip.booked
-  });
 });
 
-app.get("/bookings", (req, res) => {
-  res.json(bookings);
-});
+// GET BOOKINGS
+app.get("/bookings", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT b.id, b.trip_id as "tripId", u.username as user, b.vehicle, b.price, b.passengers, b.status 
+       FROM bookings b
+       LEFT JOIN users u ON b.user_id = u.id
+       ORDER BY b.id DESC`
+    );
 
-app.put("/bookings/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const index = bookings.findIndex(b => b.id === id);
+    res.json(result.rows);
 
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: "Booking not found" });
+  } catch (err) {
+    console.error("GET BOOKINGS ERROR:", err);
+
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
   }
-
-  bookings[index] = { ...bookings[index], ...req.body };
-
-  res.json({ success: true, booking: bookings[index] });
 });
 
-// ================= ADMIN DASHBOARD =================
-app.get("/admin/data", (req, res) => {
-  res.json({
-    users,
-    trips,
-    bookings
+// DELETE BOOKING
+app.delete("/bookings/:id", async (req, res) => {
+  try {
+    await pool.query(
+      `DELETE FROM bookings WHERE id = $1`,
+      [req.params.id]
+    );
+
+    res.json({
+      success: true
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
+});
+
+// ================= ADMIN =================
+app.get("/admin/data", async (req, res) => {
+  try {
+
+    const users = await pool.query(
+      `SELECT id, username, email, role, contact FROM users`
+    );
+
+    const trips = await pool.query(
+      `SELECT * FROM trips`
+    );
+
+    const bookings = await pool.query(
+      `SELECT * FROM bookings`
+    );
+
+    res.json({
+      users: users.rows,
+      trips: trips.rows,
+      bookings: bookings.rows
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      message: "Server error"
+    });
+  }
+});
+
+// ================= SOCKET.IO =================
+io.on("connection", (socket) => {
+
+  console.log("New client connected", socket.id);
+
+  socket.on("driverLocationUpdate", async (data) => {
+
+    try {
+
+      const { tripId, location } = data;
+
+      await pool.query(
+        `
+        UPDATE trips
+        SET location = $1
+        WHERE id = $2
+        `,
+        [location, tripId]
+      );
+
+      io.emit("tripLocationUpdated", {
+        tripId,
+        location
+      });
+
+    } catch (err) {
+      console.error(err);
+    }
   });
-});
 
-app.get("/trips", (req, res) => {
-  res.json(trips);
+  socket.on("disconnect", () => {
+    console.log("Client disconnected", socket.id);
+  });
 });
 
 // ================= SERVER =================
-app.listen(5001, () => {
+server.listen(5001, () => {
   console.log("Server running on port 5001");
 });
-
