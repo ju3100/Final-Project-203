@@ -20,6 +20,11 @@ export default function Driver() {
       return null;
     }
   });
+  // ✅ GET LOGGED USER (Initialize once to prevent infinite loops)
+  const [currentUser] = useState(() => 
+    JSON.parse(localStorage.getItem("user")) ||
+    JSON.parse(sessionStorage.getItem("user"))
+  );
 
   // 👤 DRIVER PROFILE
   const [driver, setDriver] = useState({
@@ -530,7 +535,7 @@ export default function Driver() {
                   </>
                 ) : (
                   <>
-                    <p><strong>Availability:</strong> {t.status === "active" ? "Available for Service" : "Not Available"}</p>
+                    <p><strong>Availability:</strong> {t.availability === "available" ? "Available for Service" : "Not Available"}</p>
                     <p><strong>Duration:</strong> {t.duration === "daily" ? "1 Day" : t.duration === "weekly" ? "1 Week" : "Hourly"}</p>
                     <p><strong>Start:</strong> {t.startTime ? new Date(t.startTime).toLocaleString() : "N/A"}</p>
                     <p><strong>End:</strong> {t.endTime ? new Date(t.endTime).toLocaleString() : "N/A"}</p>

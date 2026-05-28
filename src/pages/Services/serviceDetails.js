@@ -42,6 +42,7 @@ export default function ServiceDetails() {
         vehicle: finalVehicle,
         price: finalPrice,
         user: user?.username || "Guest",
+        user: user?.name,
         status: "pending"
       });
 

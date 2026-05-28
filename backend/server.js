@@ -29,12 +29,22 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*",
+const io = new Server(server, {
+  cors: {
+    origin: "*", // In production, replace with frontend URL
     methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
 
 app.use(cors());
 app.use(express.json());
+
+// ================= DATA =================
+// let users = [];
+// let trips = [];
+// let bookings = [];
+
+
 
 // ================= AUTH =================
 
@@ -162,6 +172,12 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({
         message: "Invalid username or password"
       });
+  res.json({
+    user: {
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      contact: user.contact
     }
 
     res.json({
@@ -206,6 +222,13 @@ app.post("/trips", async (req, res) => {
       } else {
         return res.status(400).json({ success: false, message: "Driver not found" });
       }
+  res.json({
+    user: {
+      username: user.username,
+      email: user.email,
+      role: user.role,
+      contact: user.contact,
+      
     }
 
     const result = await pool.query(
@@ -298,6 +321,30 @@ app.get("/trips", async (req, res) => {
       message: "Server error"
     });
   }
+
+  const trip = {
+    id: Date.now(),
+    type: req.body.type,
+    driver: req.body.driver || "Unknown",
+    from: req.body.type === "bus" ? req.body.from : undefined,
+    to: req.body.type === "bus" ? req.body.to : undefined,
+    time: req.body.type === "bus" ? req.body.time : undefined,
+    startTime: req.body.type !== "bus" ? req.body.startTime : undefined,
+    endTime: req.body.type !== "bus" ? req.body.endTime : undefined,
+    capacity: req.body.type === "bus" ? capacity : (req.body.capacity || 1),
+    booked: 0,
+    status: req.body.status || (req.body.type === "bus" ? "Available" : "On Service"),
+    busSize: req.body.type === "bus" ? req.body.busSize : undefined,
+    vehicleType: req.body.vehicleType,
+    availability: req.body.type === "bus" ? undefined : req.body.availability,
+    contact: req.body.contact,
+    email: req.body.email,
+    location: req.body.location
+  };
+
+  trips.push(trip);
+
+  res.json({ success: true, trip });
 });
 
 // UPDATE TRIP
@@ -555,6 +602,71 @@ io.on("connection", (socket) => {
 
     } catch (err) {
       console.error(err);
+    }
+app.delete("/bookings/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const index = bookings.findIndex(b => b.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: "Booking not found" });
+  }
+
+  bookings.splice(index, 1);
+  res.json({ success: true });
+});
+
+app.get("/booking", (req, res) => {
+  res.json(bookings);
+});
+
+app.put("/booking/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const index = bookings.findIndex(b => b.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: "Booking not found" });
+  }
+
+  bookings[index] = { ...bookings[index], ...req.body };
+  res.json({ success: true, booking: bookings[index] });
+});
+
+app.delete("/booking/:id", (req, res) => {
+  const id = Number(req.params.id);
+  const index = bookings.findIndex(b => b.id === id);
+
+  if (index === -1) {
+    return res.status(404).json({ success: false, message: "Booking not found" });
+  }
+
+  bookings.splice(index, 1);
+  res.json({ success: true });
+});
+
+// ================= ADMIN DASHBOARD =================
+app.get("/admin/data", (req, res) => {
+  res.json({
+    users,
+    trips,
+    bookings
+  });
+
+  socket.on("disconnect", () => {
+    console.log("Client disconnected", socket.id);
+  });
+});
+
+// ================= SOCKET.IO =================
+io.on("connection", (socket) => {
+  console.log("New client connected", socket.id);
+
+  socket.on("driverLocationUpdate", (data) => {
+    const { tripId, location } = data;
+    const trip = trips.find(t => t.id === tripId);
+    if (trip) {
+      trip.location = location;
+      // Broadcast to everyone listening
+      io.emit("tripLocationUpdated", { tripId, location });
     }
   });
 

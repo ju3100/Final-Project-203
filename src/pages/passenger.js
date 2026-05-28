@@ -19,6 +19,11 @@ export default function Passenger() {
       return null;
     }
   });
+  // GET LOGGED USER (Initialize once)
+  const [currentUser] = useState(() => 
+    JSON.parse(localStorage.getItem("user")) ||
+    JSON.parse(sessionStorage.getItem("user"))
+  );
 
   // PASSENGER PROFILE
   const passenger = {
@@ -62,6 +67,11 @@ export default function Passenger() {
             ? true // Bus trips stay available until they are Full, Booked, completed, or cancelled
             : (t.endTime ? !isNaN(new Date(t.endTime)) && new Date(t.endTime) > now : false);
           return inFuture && t.status !== "Completed" && t.status !== "cancelled" && t.status !== "Full" && t.status !== "Booked" && (t.capacity ? (t.booked || 0) < t.capacity : true);
+        const active = data.filter(t => {
+          const inFuture = t.type === "bus"
+            ? new Date(t.time) > now
+            : t.endTime ? new Date(t.endTime) > now : false;
+          return inFuture && t.status !== "Completed";
         });
         setTrips(active);
       })

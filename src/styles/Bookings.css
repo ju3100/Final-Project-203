@@ -167,6 +167,10 @@
   padding: 30px;
   border-radius: 20px;
   width: min(100%, 420px);
+  background: white;
+  padding: 25px;
+  border-radius: 18px;
+  width: min(100%, 380px);
   max-height: 90vh;
   overflow-y: auto;
   display: flex;
@@ -227,6 +231,12 @@
 .modal-box select option {
   background: var(--booking-bg);
   color: white;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
+  font-size: 0.96rem;
+  color: #0f172a;
+  box-sizing: border-box;
 }
 
 .modal-box textarea {
