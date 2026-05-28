@@ -1,6 +1,6 @@
 export function initDB() {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open("TransportDB", 2);
+    const request = indexedDB.open("vanuatu_transportdb", 2);
 
     request.onupgradeneeded = () => {
       const db = request.result;

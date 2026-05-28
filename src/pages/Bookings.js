@@ -61,9 +61,10 @@ export default function Booking() {
 
         filtered = filtered.filter(t => {
           const isFuture = t.type === "bus"
-            ? (!isNaN(new Date(t.time)) && new Date(t.time) > now)
+            ? true // Bus trips stay available until they are Full, Booked, completed, or cancelled
+
             : (t.endTime ? !isNaN(new Date(t.endTime)) && new Date(t.endTime) > now : false);
-          const isAvailableStatus = t.status !== "Full" && t.status !== "Booked" && t.status !== "Not Available";
+          const isAvailableStatus = t.status !== "completed" && t.status !== "cancelled" && t.status !== "Full" && t.status !== "Booked" && t.booked < t.capacity;
           return isFuture && isAvailableStatus;
         });
 
@@ -89,6 +90,16 @@ export default function Booking() {
       return setError("Please fill pickup location and destination");
     }
 
+    if (form.payment === "card") {
+      if (!form.cardNumber || !form.cardExpiry || !form.cardCvc) {
+        return setError("Please fill all card details");
+      }
+    } else if (form.payment === "mobile") {
+      if (!form.mobileNumber) {
+        return setError("Please enter your Mobile Money number");
+      }
+    }
+
     setLoading(true);
     setError("");
     setSuccess("");
@@ -99,7 +110,7 @@ export default function Booking() {
         type: selectedTrip.type,
         user: form.name,
         date: form.date,
-        passengers: form.passengers,
+        passengers: Number(form.passengers),
         payment: form.payment,
         status: "pending"
       };
@@ -138,7 +149,7 @@ export default function Booking() {
 
         setSuccess(`Booking confirmed! Payment method: ${form.payment}`);
         setSelectedTrip(null);
-        setForm({ name: "", date: "", passengers: 1, payment: "cash" });
+        setForm({ name: "", date: "", passengers: 1, payment: "cash", cardNumber: "", cardExpiry: "", cardCvc: "", mobileNumber: "" });
       } else {
         setError(data.message || "Booking failed");
       }
@@ -177,7 +188,7 @@ export default function Booking() {
                 </>
               ) : (
                 <>
-                  <p>{trip.status === "On Service" ? "Taxi/Private available now" : "Service slot available"}</p>
+                  <p>{trip.status === "active" ? "Taxi/Private available now" : "Service slot available"}</p>
                   <p><strong>Start:</strong> {trip.startTime ? new Date(trip.startTime).toLocaleString() : "N/A"}</p>
                   <p><strong>End:</strong> {trip.endTime ? new Date(trip.endTime).toLocaleString() : "N/A"}</p>
                 </>
@@ -284,6 +295,42 @@ export default function Booking() {
               <option value="card">Card</option>
               <option value="mobile">Mobile Money</option>
             </select>
+
+            {form.payment === "card" && (
+              <>
+                <input
+                  type="text"
+                  placeholder="Card Number"
+                  value={form.cardNumber || ""}
+                  onChange={e => setForm({ ...form, cardNumber: e.target.value })}
+                />
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <input
+                    type="text"
+                    placeholder="MM/YY"
+                    value={form.cardExpiry || ""}
+                    onChange={e => setForm({ ...form, cardExpiry: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                  <input
+                    type="text"
+                    placeholder="CVC"
+                    value={form.cardCvc || ""}
+                    onChange={e => setForm({ ...form, cardCvc: e.target.value })}
+                    style={{ flex: 1 }}
+                  />
+                </div>
+              </>
+            )}
+
+            {form.payment === "mobile" && (
+              <input
+                type="text"
+                placeholder="Mobile Money Number"
+                value={form.mobileNumber || ""}
+                onChange={e => setForm({ ...form, mobileNumber: e.target.value })}
+              />
+            )}
 
             <div className="modal-actions">
               <button

@@ -38,6 +38,7 @@ export default function Admin() {
       .catch(() => {
         setError("Failed to load admin data");
         getAllData("bookings")
+          .then(data => setBookings(Array.isArray(data) ? data : []))
           .then(setBookings)
           .catch(() => {});
       });
@@ -83,6 +84,7 @@ export default function Admin() {
         ...newTrip,
         capacity: newTrip.type === "bus" ? newTrip.capacity : 1,
         booked: 0,
+        status: newTrip.type === "bus" ? "scheduled" : "active"
         status: newTrip.type === "bus" ? "Available" : "On Service"
       });
       setNewTrip({
@@ -109,6 +111,7 @@ export default function Admin() {
     <div className="admin-container">
 
       <div className="role-header">
+        
         <h2>Admin Dashboard </h2>
         <button
           className="menu-toggle"
@@ -189,6 +192,7 @@ export default function Admin() {
           </div>
 
           <div className="chart-container">
+            <AdminChart bookings={bookings} trips={trips} />
             <AdminChart bookings={bookings} />
           </div>
         </>

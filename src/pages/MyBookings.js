@@ -4,7 +4,7 @@ export default function MyBookings() {
   const [data, setData] = useState([]);
   const [error, setError] = useState("");
 
-  // 🔥 Load bookings from backend
+  // Load bookings from backend
   const loadBookings = () => {
     fetch("http://localhost:5001/booking")
       .then(res => res.json())
@@ -16,7 +16,7 @@ export default function MyBookings() {
     loadBookings();
   }, []);
 
-  // 🔥 Delete booking
+  // Delete booking
   const deleteBooking = async (id) => {
     await fetch(`http://localhost:5001/booking/${id}`, {
       method: "DELETE"

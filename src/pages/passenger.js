@@ -8,6 +8,17 @@ import LiveMap from "../components/LiveMap";
 const socket = io("http://localhost:5001");
 
 export default function Passenger() {
+  const [currentUser] = useState(() => {
+    try {
+      const local = localStorage.getItem("user");
+      if (local && local !== "undefined") return JSON.parse(local);
+      const session = sessionStorage.getItem("user");
+      if (session && session !== "undefined") return JSON.parse(session);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  });
   // GET LOGGED USER (Initialize once)
   const [currentUser] = useState(() => 
     JSON.parse(localStorage.getItem("user")) ||
@@ -51,6 +62,11 @@ export default function Passenger() {
     api.getTrips()
       .then(data => {
         const now = new Date();
+        const active = (Array.isArray(data) ? data : []).filter(t => {
+          const inFuture = t.type === "bus"
+            ? true // Bus trips stay available until they are Full, Booked, completed, or cancelled
+            : (t.endTime ? !isNaN(new Date(t.endTime)) && new Date(t.endTime) > now : false);
+          return inFuture && t.status !== "Completed" && t.status !== "cancelled" && t.status !== "Full" && t.status !== "Booked" && (t.capacity ? (t.booked || 0) < t.capacity : true);
         const active = data.filter(t => {
           const inFuture = t.type === "bus"
             ? new Date(t.time) > now
@@ -67,7 +83,7 @@ export default function Passenger() {
   const loadBookings = useCallback(() => {
     api.getBookings()
       .then(data => {
-        const myBookings = data.filter(b => b.user === currentUser?.username);
+        const myBookings = (Array.isArray(data) ? data : []).filter(b => b.user === currentUser?.username);
         setBookings(myBookings);
       })
       .catch(() => console.log("Failed to load bookings"));
@@ -89,7 +105,7 @@ export default function Passenger() {
     };
   }, [loadTrips, loadBookings]);
 
-  // ✅ BOOK TRIP
+  // BOOK TRIP
   const bookTrip = async (tripId) => {
     try {
       await api.createBooking({
@@ -118,7 +134,7 @@ export default function Passenger() {
     <div className="passenger-container fade-in">
 
       <div className="role-header">
-        <h2 className="title">Passenger Dashboard</h2>
+        
         <button
           className="menu-toggle"
           onClick={() => setMenuOpen((prev) => !prev)}
@@ -197,7 +213,7 @@ export default function Passenger() {
 
       {message && <div className="info">{message}</div>}
 
-      {/* 🔄 LOADING */}
+      {/* LOADING */}
       {loading && <p>Loading trips...</p>}
 
       {/* NOTIFICATIONS */}
@@ -228,6 +244,7 @@ export default function Passenger() {
                     <h4>Trip #{b.tripId}</h4>
                     <p><strong>Status:</strong> {b.status}</p>
                     <p><strong>Passengers:</strong> {b.passengers || 1}</p>
+                    <p><strong>Vehicle:</strong> {b.vehicle || (trip ? (trip.vehicleType || trip.busSize || trip.type) : "N/A")}</p>
                     {trip && trip.location && trip.location.lat && (
                       <LiveMap location={trip.location} destinationText={`Driver: ${trip.driver}`} />
                     )}
@@ -263,7 +280,7 @@ export default function Passenger() {
                     <>
                       <p><strong>Driver:</strong> {trip.driver}</p>
                       <p><strong>Contact:</strong> {trip.contact}</p>
-                      <p><strong>Start:</strong> {trip.startTime ? new Date(trip.startTime).toLocaleString() : "N/A"}</p>
+                      <p><strong>Start:</strong> {trip.startTime ? new Date(trip.startTime).toLocaleString() : "N/A"}</p>+
                       <p><strong>End:</strong> {trip.endTime ? new Date(trip.endTime).toLocaleString() : "N/A"}</p>
                       <p><strong>Status:</strong> {trip.status}</p>
                       <p><strong>Availability:</strong> {trip.availability === "available" ? "Available for Service" : "Not Available"}</p>

@@ -37,7 +37,7 @@ export default function Home() {
       <section className="about">
         <h2>About</h2>
         <p>
-          TransportVU is a smart transport booking system that helps users in Vanuatu
+          Vanuatu Smart Transport is a smart transport booking system that helps users in Vanuatu
           easily find and book taxis, buses, and public transport. Our platform is
           designed to make travel simple, fast, and reliable—all in one place.
         </p>
@@ -61,14 +61,10 @@ export default function Home() {
               <h3>{s.name}</h3>
               <img src={s.img} alt={s.name} />
               <div className="action-buttons">
-  <div className="book-now">
-    <button onClick={() => navigate("/services")}>View More</button>
-  </div>
-
-  <div className="book-now">
-    <button onClick={() => navigate("/booking")}>Book Now</button>
-  </div>
-</div>
+        <div className="book-now">
+          <button onClick={() => navigate("/booking")}>Book Now</button>
+        </div>
+      </div>
             </div>
           ))}
         </div>

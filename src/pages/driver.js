@@ -9,6 +9,17 @@ const socket = io("http://localhost:5001");
 
 export default function Driver() {
 
+  const [currentUser] = useState(() => {
+    try {
+      const local = localStorage.getItem("user");
+      if (local && local !== "undefined") return JSON.parse(local);
+      const session = sessionStorage.getItem("user");
+      if (session && session !== "undefined") return JSON.parse(session);
+      return null;
+    } catch (e) {
+      return null;
+    }
+  });
   // ✅ GET LOGGED USER (Initialize once to prevent infinite loops)
   const [currentUser] = useState(() => 
     JSON.parse(localStorage.getItem("user")) ||
@@ -25,7 +36,7 @@ export default function Driver() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("profile");
 
-  // 🚐 TRIP FORM
+  // TRIP FORM
   const [trip, setTrip] = useState({
     type: "bus",
     from: "",
@@ -40,10 +51,10 @@ export default function Driver() {
     duration: "hourly"
   });
 
-  // 📍 LOCATION
+  // LOCATION
   const [location, setLocation] = useState({ lat: null, lng: null });
 
-  // 🔔 NOTIFICATIONS
+  // NOTIFICATIONS
   const [notifications, setNotifications] = useState([]);
 
   const addNotification = (msg) => {
@@ -56,25 +67,26 @@ export default function Driver() {
 
   // DATA
   const [trips, setTrips] = useState([]);
-  const [bookings, setBookings] = useState([]); // ✅ NEW
-  const [tripHistory, setTripHistory] = useState([]); // Trip history
+  const [bookings, setBookings] = useState([]); 
+  const [tripHistory, setTripHistory] = useState([]); 
   const [editingId, setEditingId] = useState(null);
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  // ✅ LOAD TRIPS
+  // LOAD TRIPS
   const loadTrips = useCallback(() => {
     setLoading(true);
 
     api.getTrips()
       .then(data => {
-        const active = data.filter(
+        const dataArr = Array.isArray(data) ? data : [];
+        const active = dataArr.filter(
           t => t.driver === currentUser?.username && 
-          (t.status === "Available" || t.status === "On Service")
+          (t.status === "scheduled" || t.status === "active")
         );
-        const history = data.filter(
+        const history = dataArr.filter(
           t => t.driver === currentUser?.username && 
-          (t.status === "Booked" || t.status === "Full" || t.status === "Completed")
+          (t.status === "completed" || t.status === "cancelled")
         );
         setTrips(active);
         setTripHistory(history);
@@ -83,20 +95,20 @@ export default function Driver() {
       .finally(() => setLoading(false));
   }, [currentUser]);
 
-  // ✅ LOAD BOOKINGS
+  // LOAD BOOKINGS
   const loadBookings = useCallback(() => {
     api.getBookings()
-      .then(data => setBookings(data))
+      .then(data => setBookings(Array.isArray(data) ? data : []))
       .catch(() => console.log("Failed to load bookings"));
   }, []);
 
-  // ✅ LOAD ON MOUNT
+  // LOAD ON MOUNT
   useEffect(() => {
     loadTrips();
     loadBookings();
   }, [loadTrips, loadBookings]);
 
-  // 📍 GET LOCATION ON MOUNT AND WATCH
+  // GET LOCATION ON MOUNT AND WATCH
   useEffect(() => {
     let watchId;
     if (navigator.geolocation) {
@@ -120,7 +132,7 @@ export default function Driver() {
     };
   }, [trips]);
 
-  // ✅ SAVE TRIP
+  //  SAVE TRIP
   const saveTrip = async () => {
     if (!driver.username || !driver.contact) {
       return setMessage("Please fill all required fields");
@@ -164,7 +176,7 @@ export default function Driver() {
         email: driver.email,
         capacity: finalCapacity,
         booked: 0,
-        status: trip.type === "bus" ? "Available" : (trip.availability === "available" ? "On Service" : "Not Available"),
+        status: trip.type === "bus" ? "scheduled" : (trip.availability === "available" ? "active" : "cancelled"),
         availability: trip.availability,
         location: location,
         vehicleType: finalVehicleType
@@ -238,7 +250,7 @@ export default function Driver() {
     }
   };
 
-  // ✅ CONFIRM BOOKING
+  // CONFIRM BOOKING
   const confirmBooking = async (id) => {
     try {
       await api.updateBooking(id, { status: "confirmed" });
@@ -258,7 +270,7 @@ export default function Driver() {
     <div className="driver-container">
 
       <div className="role-header">
-        <h2 className="title">Driver Dashboard</h2>
+        
         <button
           className="menu-toggle"
           onClick={() => setMenuOpen((prev) => !prev)}
@@ -546,6 +558,7 @@ export default function Driver() {
                     bookings.filter((b) => b.tripId === t.id).map((b) => (
                       <div key={b.id} className="booking-item">
                         <p><strong>Passenger:</strong> {b.user}</p>
+                        <p><strong>Vehicle:</strong> {b.vehicle || t.vehicleType || t.busSize || t.type || "N/A"}</p>
                         <p>Status: {b.status || "pending"}</p>
                         {b.status !== "confirmed" && (
                           <button onClick={() => confirmBooking(b.id)}>Confirm</button>
@@ -579,6 +592,7 @@ export default function Driver() {
                 <div key={b.id} className="booking-item">
                   <p><strong>Passenger:</strong> {b.user}</p>
                   <p><strong>Trip:</strong> {trip ? `${trip.type.toUpperCase()} ${trip.from || trip.startTime}` : b.tripId}</p>
+                  <p><strong>Vehicle:</strong> {b.vehicle || (trip ? (trip.vehicleType || trip.busSize || trip.type) : "N/A")}</p>
                   <p><strong>Status:</strong> {b.status || "pending"}</p>
                   {b.status !== "confirmed" && (
                     <button onClick={() => confirmBooking(b.id)}>Confirm</button>

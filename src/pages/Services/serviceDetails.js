@@ -1,6 +1,7 @@
 import { useLocation, useParams } from "react-router-dom";
 import { useState } from "react";
 import { api } from "../../api/APIBook";
+import "../../styles/service.css";
 
 export default function ServiceDetails() {
   const { type } = useParams();
@@ -40,6 +41,7 @@ export default function ServiceDetails() {
         type,
         vehicle: finalVehicle,
         price: finalPrice,
+        user: user?.username || "Guest",
         user: user?.name,
         status: "pending"
       });
