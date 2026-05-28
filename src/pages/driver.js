@@ -21,10 +21,10 @@ export default function Driver() {
     }
   });
   // ✅ GET LOGGED USER (Initialize once to prevent infinite loops)
-  const [currentUser] = useState(() => 
-    JSON.parse(localStorage.getItem("user")) ||
-    JSON.parse(sessionStorage.getItem("user"))
-  );
+  // const [currentUser] = useState(() => 
+  //   JSON.parse(localStorage.getItem("user")) ||
+  //   JSON.parse(sessionStorage.getItem("user"))
+  // );
 
   // 👤 DRIVER PROFILE
   const [driver, setDriver] = useState({
