@@ -84,7 +84,7 @@ export default function Admin() {
         ...newTrip,
         capacity: newTrip.type === "bus" ? newTrip.capacity : 1,
         booked: 0,
-        status: newTrip.type === "bus" ? "scheduled" : "active"
+        
         status: newTrip.type === "bus" ? "Available" : "On Service"
       });
       setNewTrip({

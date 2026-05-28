@@ -29,22 +29,12 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "*",
-const io = new Server(server, {
-  cors: {
-    origin: "*", // In production, replace with frontend URL
     methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
 
 app.use(cors());
 app.use(express.json());
-
-// ================= DATA =================
-// let users = [];
-// let trips = [];
-// let bookings = [];
-
-
 
 // ================= AUTH =================
 
@@ -88,7 +78,6 @@ app.post("/signup", async (req, res) => {
       });
     }
 
-    // Check existing user
     const existingUser = await pool.query(
       `
       SELECT *
@@ -104,10 +93,8 @@ app.post("/signup", async (req, res) => {
       });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(user.password, 10);
 
-    // Insert user
     const result = await pool.query(
       `
       INSERT INTO users
@@ -120,7 +107,7 @@ app.post("/signup", async (req, res) => {
         user.email,
         hashedPassword,
         user.role,
-        user.contact
+        user.contact || null
       ]
     );
 
@@ -143,7 +130,6 @@ app.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Find user
     const result = await pool.query(
       `
       SELECT *
@@ -155,14 +141,12 @@ app.post("/login", async (req, res) => {
 
     const user = result.rows[0];
 
-    // User not found
     if (!user) {
       return res.status(400).json({
         message: "Invalid username or password"
       });
     }
 
-    // Compare password
     const validPassword = await bcrypt.compare(
       password,
       user.password_hash
@@ -172,12 +156,6 @@ app.post("/login", async (req, res) => {
       return res.status(400).json({
         message: "Invalid username or password"
       });
-  res.json({
-    user: {
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      contact: user.contact
     }
 
     res.json({
@@ -205,30 +183,29 @@ app.post("/login", async (req, res) => {
 // CREATE TRIP
 app.post("/trips", async (req, res) => {
   try {
+
     const capacity = Math.max(
       0,
       Number(req.body.capacity) || 0
     );
 
-    // Look up driver_id using req.body.driver (username)
     let driver_id = null;
+
     if (req.body.driver) {
+
       const userRes = await pool.query(
         `SELECT id FROM users WHERE username = $1`,
         [req.body.driver]
       );
+
       if (userRes.rows.length > 0) {
         driver_id = userRes.rows[0].id;
       } else {
-        return res.status(400).json({ success: false, message: "Driver not found" });
+        return res.status(400).json({
+          success: false,
+          message: "Driver not found"
+        });
       }
-  res.json({
-    user: {
-      username: user.username,
-      email: user.email,
-      role: user.role,
-      contact: user.contact,
-      
     }
 
     const result = await pool.query(
@@ -255,16 +232,30 @@ app.post("/trips", async (req, res) => {
         $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,
         $11,$12,$13,$14,$15,$16
       )
-      RETURNING id, type, driver_id, pickup_location as "from", destination_location as "to", 
-        trip_time as time, start_time as "startTime", end_time as "endTime", 
-        capacity, booked, status, bus_size as "busSize", vehicle_type as "vehicleType", 
-        availability, contact, email, location
+      RETURNING
+        id,
+        type,
+        driver_id,
+        pickup_location as "from",
+        destination_location as "to",
+        trip_time as time,
+        start_time as "startTime",
+        end_time as "endTime",
+        capacity,
+        booked,
+        status,
+        bus_size as "busSize",
+        vehicle_type as "vehicleType",
+        availability,
+        contact,
+        email,
+        location
       `,
       [
         req.body.type || null,
         driver_id,
-        req.body.from || 'N/A',
-        req.body.to || 'N/A',
+        req.body.from || "N/A",
+        req.body.to || "N/A",
         req.body.time || null,
         req.body.startTime || null,
         req.body.endTime || null,
@@ -273,7 +264,7 @@ app.post("/trips", async (req, res) => {
         req.body.status || "scheduled",
         req.body.busSize || null,
         req.body.vehicleType || null,
-        req.body.scheduled || null,
+        req.body.availability || null,
         req.body.contact || null,
         req.body.email || null,
         req.body.location || null
@@ -281,14 +272,16 @@ app.post("/trips", async (req, res) => {
     );
 
     const trip = result.rows[0];
-    trip.driver = req.body.driver; // Add string username back for frontend
+
+    trip.driver = req.body.driver;
 
     res.json({
       success: true,
-      trip: trip
+      trip
     });
 
   } catch (err) {
+
     console.error("CREATE TRIP ERROR:", err);
 
     res.status(500).json({
@@ -298,22 +291,41 @@ app.post("/trips", async (req, res) => {
   }
 });
 
-// GET ALL TRIPS
+// GET TRIPS
 app.get("/trips", async (req, res) => {
   try {
+
     const result = await pool.query(
-      `SELECT t.id, t.type, u.username as driver, t.pickup_location as "from", 
-       t.destination_location as "to", t.trip_time as time, t.start_time as "startTime", 
-       t.end_time as "endTime", t.capacity, t.booked, t.status, t.bus_size as "busSize", 
-       t.vehicle_type as "vehicleType", t.availability, t.contact, t.email, t.location
-       FROM trips t
-       LEFT JOIN users u ON t.driver_id = u.id
-       ORDER BY t.id DESC`
+      `
+      SELECT
+        t.id,
+        t.type,
+        u.username as driver,
+        t.pickup_location as "from",
+        t.destination_location as "to",
+        t.trip_time as time,
+        t.start_time as "startTime",
+        t.end_time as "endTime",
+        t.capacity,
+        t.booked,
+        t.status,
+        t.bus_size as "busSize",
+        t.vehicle_type as "vehicleType",
+        t.availability,
+        t.contact,
+        t.email,
+        t.location
+      FROM trips t
+      LEFT JOIN users u
+      ON t.driver_id = u.id
+      ORDER BY t.id DESC
+      `
     );
 
     res.json(result.rows);
 
   } catch (err) {
+
     console.error("GET TRIPS ERROR:", err);
 
     res.status(500).json({
@@ -321,35 +333,12 @@ app.get("/trips", async (req, res) => {
       message: "Server error"
     });
   }
-
-  const trip = {
-    id: Date.now(),
-    type: req.body.type,
-    driver: req.body.driver || "Unknown",
-    from: req.body.type === "bus" ? req.body.from : undefined,
-    to: req.body.type === "bus" ? req.body.to : undefined,
-    time: req.body.type === "bus" ? req.body.time : undefined,
-    startTime: req.body.type !== "bus" ? req.body.startTime : undefined,
-    endTime: req.body.type !== "bus" ? req.body.endTime : undefined,
-    capacity: req.body.type === "bus" ? capacity : (req.body.capacity || 1),
-    booked: 0,
-    status: req.body.status || (req.body.type === "bus" ? "Available" : "On Service"),
-    busSize: req.body.type === "bus" ? req.body.busSize : undefined,
-    vehicleType: req.body.vehicleType,
-    availability: req.body.type === "bus" ? undefined : req.body.availability,
-    contact: req.body.contact,
-    email: req.body.email,
-    location: req.body.location
-  };
-
-  trips.push(trip);
-
-  res.json({ success: true, trip });
 });
 
 // UPDATE TRIP
 app.put("/trips/:id", async (req, res) => {
   try {
+
     const id = req.params.id;
 
     const result = await pool.query(
@@ -368,6 +357,7 @@ app.put("/trips/:id", async (req, res) => {
     });
 
   } catch (err) {
+
     console.error(err);
 
     res.status(500).json({
@@ -379,6 +369,7 @@ app.put("/trips/:id", async (req, res) => {
 // DELETE TRIP
 app.delete("/trips/:id", async (req, res) => {
   try {
+
     await pool.query(
       `DELETE FROM trips WHERE id = $1`,
       [req.params.id]
@@ -389,6 +380,7 @@ app.delete("/trips/:id", async (req, res) => {
     });
 
   } catch (err) {
+
     console.error(err);
 
     res.status(500).json({
@@ -402,14 +394,16 @@ app.delete("/trips/:id", async (req, res) => {
 // CREATE BOOKING
 app.post("/bookings", async (req, res) => {
   try {
+
     let trip = null;
-    
-    // Check if tripId is provided (e.g., bus/taxi from Bookings.js)
+
     if (req.body.tripId) {
+
       const tripResult = await pool.query(
         `SELECT * FROM trips WHERE id = $1`,
         [req.body.tripId]
       );
+
       trip = tripResult.rows[0];
 
       if (!trip) {
@@ -422,32 +416,44 @@ app.post("/bookings", async (req, res) => {
 
     const passengers = Number(req.body.passengers) || 1;
 
-    // Check capacity if trip exists
-    if (trip && trip.booked + passengers > trip.capacity) {
+    if (
+      trip &&
+      trip.capacity &&
+      trip.booked + passengers > trip.capacity
+    ) {
       return res.status(400).json({
         success: false,
         message: "Not enough seats available"
       });
     }
 
-    // Try to resolve user_id from username if possible
     let user_id = null;
+
     if (req.body.user) {
-      const userRes = await pool.query(`SELECT id FROM users WHERE username = $1 OR email = $1`, [req.body.user]);
+
+      const userRes = await pool.query(
+        `
+        SELECT id
+        FROM users
+        WHERE username = $1 OR email = $1
+        `,
+        [req.body.user]
+      );
+
       if (userRes.rows.length > 0) {
         user_id = userRes.rows[0].id;
       }
     }
 
-
-    
     let vehicleInfo = req.body.vehicle;
+
     if (!vehicleInfo && trip) {
-      vehicleInfo = trip.vehicle_type || trip.bus_size || trip.type;
+      vehicleInfo =
+        trip.vehicle_type ||
+        trip.bus_size ||
+        trip.type;
     }
 
-    // Create booking
-    // Note: If schema doesn't have passenger_name, we rely on user_id, vehicle, price, passengers, status.
     const bookingResult = await pool.query(
       `
       INSERT INTO bookings (
@@ -458,8 +464,15 @@ app.post("/bookings", async (req, res) => {
         passengers,
         status
       )
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING id, trip_id as "tripId", user_id, vehicle, price, passengers, status
+      VALUES ($1,$2,$3,$4,$5,$6)
+      RETURNING
+        id,
+        trip_id as "tripId",
+        user_id,
+        vehicle,
+        price,
+        passengers,
+        status
       `,
       [
         req.body.tripId || null,
@@ -471,8 +484,8 @@ app.post("/bookings", async (req, res) => {
       ]
     );
 
-    // Update trip booked seats if it's tied to a specific trip
     if (trip) {
+
       await pool.query(
         `
         UPDATE trips
@@ -484,7 +497,8 @@ app.post("/bookings", async (req, res) => {
     }
 
     const newBooking = bookingResult.rows[0];
-    newBooking.user = req.body.user; // attach back for frontend
+
+    newBooking.user = req.body.user;
 
     res.json({
       success: true,
@@ -492,6 +506,7 @@ app.post("/bookings", async (req, res) => {
     });
 
   } catch (err) {
+
     console.error("CREATE BOOKING ERROR:", err);
 
     res.status(500).json({
@@ -504,16 +519,28 @@ app.post("/bookings", async (req, res) => {
 // GET BOOKINGS
 app.get("/bookings", async (req, res) => {
   try {
+
     const result = await pool.query(
-      `SELECT b.id, b.trip_id as "tripId", u.username as user, b.vehicle, b.price, b.passengers, b.status 
-       FROM bookings b
-       LEFT JOIN users u ON b.user_id = u.id
-       ORDER BY b.id DESC`
+      `
+      SELECT
+        b.id,
+        b.trip_id as "tripId",
+        u.username as user,
+        b.vehicle,
+        b.price,
+        b.passengers,
+        b.status
+      FROM bookings b
+      LEFT JOIN users u
+      ON b.user_id = u.id
+      ORDER BY b.id DESC
+      `
     );
 
     res.json(result.rows);
 
   } catch (err) {
+
     console.error("GET BOOKINGS ERROR:", err);
 
     res.status(500).json({
@@ -526,6 +553,7 @@ app.get("/bookings", async (req, res) => {
 // DELETE BOOKING
 app.delete("/bookings/:id", async (req, res) => {
   try {
+
     await pool.query(
       `DELETE FROM bookings WHERE id = $1`,
       [req.params.id]
@@ -536,6 +564,7 @@ app.delete("/bookings/:id", async (req, res) => {
     });
 
   } catch (err) {
+
     console.error(err);
 
     res.status(500).json({
@@ -545,11 +574,20 @@ app.delete("/bookings/:id", async (req, res) => {
 });
 
 // ================= ADMIN =================
+
 app.get("/admin/data", async (req, res) => {
   try {
 
     const users = await pool.query(
-      `SELECT id, username, email, role, contact FROM users`
+      `
+      SELECT
+        id,
+        username,
+        email,
+        role,
+        contact
+      FROM users
+      `
     );
 
     const trips = await pool.query(
@@ -567,6 +605,7 @@ app.get("/admin/data", async (req, res) => {
     });
 
   } catch (err) {
+
     console.error(err);
 
     res.status(500).json({
@@ -576,6 +615,7 @@ app.get("/admin/data", async (req, res) => {
 });
 
 // ================= SOCKET.IO =================
+
 io.on("connection", (socket) => {
 
   console.log("New client connected", socket.id);
@@ -601,72 +641,8 @@ io.on("connection", (socket) => {
       });
 
     } catch (err) {
+
       console.error(err);
-    }
-app.delete("/bookings/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const index = bookings.findIndex(b => b.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: "Booking not found" });
-  }
-
-  bookings.splice(index, 1);
-  res.json({ success: true });
-});
-
-app.get("/booking", (req, res) => {
-  res.json(bookings);
-});
-
-app.put("/booking/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const index = bookings.findIndex(b => b.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: "Booking not found" });
-  }
-
-  bookings[index] = { ...bookings[index], ...req.body };
-  res.json({ success: true, booking: bookings[index] });
-});
-
-app.delete("/booking/:id", (req, res) => {
-  const id = Number(req.params.id);
-  const index = bookings.findIndex(b => b.id === id);
-
-  if (index === -1) {
-    return res.status(404).json({ success: false, message: "Booking not found" });
-  }
-
-  bookings.splice(index, 1);
-  res.json({ success: true });
-});
-
-// ================= ADMIN DASHBOARD =================
-app.get("/admin/data", (req, res) => {
-  res.json({
-    users,
-    trips,
-    bookings
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Client disconnected", socket.id);
-  });
-});
-
-// ================= SOCKET.IO =================
-io.on("connection", (socket) => {
-  console.log("New client connected", socket.id);
-
-  socket.on("driverLocationUpdate", (data) => {
-    const { tripId, location } = data;
-    const trip = trips.find(t => t.id === tripId);
-    if (trip) {
-      trip.location = location;
-      // Broadcast to everyone listening
-      io.emit("tripLocationUpdated", { tripId, location });
     }
   });
 
@@ -676,6 +652,7 @@ io.on("connection", (socket) => {
 });
 
 // ================= SERVER =================
+
 server.listen(5001, () => {
   console.log("Server running on port 5001");
 });
