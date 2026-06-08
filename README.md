@@ -97,7 +97,7 @@ Technology:
 
 * Node.js
 * Express.js
-* Socket.IO
+* Socket.IO //Browser sends request → server responds//
 * PostgreSQL
 
 Responsibilities:
