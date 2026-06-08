@@ -1,70 +1,397 @@
-# Getting Started with Create React App
+# Vanuatu Smart Transport
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+## Project Information
 
-## Available Scripts
+**Project Name:** Vanuatu Smart Transport
 
-In the project directory, you can run:
+**Course:** ITDI203 Front-End and Backend
 
-### `npm start`
+**Project Group:** Team G3
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+### Team Members
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+* Junior Chris Kavick
+* Brown Tamata
+* Ralph Theophile
 
-### `npm test`
+---
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+# Project Overview
 
-### `npm run build`
+Vanuatu Smart Transport is a cloud-based transportation management system designed to simplify trip scheduling, booking management, and transport coordination across Vanuatu.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The application supports three user roles:
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+* **Passengers** – Search and book available trips.
+* **Drivers** – Manage assigned trips and update transport information.
+* **Administrators** – Manage users, trips, bookings, and monitor system activities.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+The system is developed using a modern web architecture with a React frontend, Node.js/Express backend, PostgreSQL database, and cloud deployment through Render.
 
-### `npm run eject`
+---
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+# Key Features
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+### Passenger Features
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+* User registration and login
+* Browse available trips
+* Book transport services
+* View booking history
+* Offline access using IndexedDB
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+### Driver Features
 
-## Learn More
+* Driver authentication
+* Create and manage trips
+* Real-time location updates using Socket.IO
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Administrator Features
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+* Manage users
+* Manage trips
+* Manage bookings
+* View transport statistics and reports
+* Monitor overall system activity
 
-### Code Splitting
+---
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+# System Architecture
 
-### Analyzing the Bundle Size
+## Frontend
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Technology:
 
-### Making a Progressive Web App
+* React.js
+* React Router
+* IndexedDB
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+Responsibilities:
 
-### Advanced Configuration
+* User interface
+* Trip management screens
+* Booking management
+* Offline data caching
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+Location:
 
-### Deployment
+```text
+frontend/
+└── src/
+    ├── components/
+    ├── pages/
+    ├── api/
+    └── utils/
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+Important Files:
 
-### `npm run build` fails to minify
+* `src/api/APIBook.js`
+* `src/utils/indexDB.js`
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+---
+
+## Backend
+
+Technology:
+
+* Node.js
+* Express.js
+* Socket.IO
+* PostgreSQL
+
+Responsibilities:
+
+* Authentication
+* User management
+* Trip management
+* Booking management
+* Real-time communication
+
+Location:
+
+```text
+backend/
+└── server.js
+```
+
+---
+
+## Database
+
+Database Management System:
+
+* PostgreSQL
+
+### Users Table
+
+```sql
+users(
+    id,
+    username,
+    email,
+    password_hash,
+    role,
+    contact
+)
+```
+
+### Trips Table
+
+```sql
+trips(
+    id,
+    type,
+    driver_id,
+    pickup_location,
+    destination_location,
+    trip_time,
+    start_time,
+    end_time,
+    capacity,
+    booked,
+    status,
+    bus_size,
+    vehicle_type,
+    availability,
+    contact,
+    email,
+    location
+)
+```
+
+### Bookings Table
+
+```sql
+bookings(
+    id,
+    trip_id,
+    user_id,
+    vehicle,
+    price,
+    passengers,
+    status
+)
+```
+
+---
+
+# Development Workflow
+
+The project follows a GitHub-based development workflow:
+
+1. Developers create feature branches.
+2. Changes are committed and pushed to GitHub.
+3. Pull Requests are created for review.
+4. Code is merged into the main branch.
+5. Render automatically deploys the latest version.
+
+---
+
+# Installation Guide
+
+## Prerequisites
+
+Install:
+
+* Node.js
+* npm
+* PostgreSQL
+* Git
+
+---
+
+## Clone Repository
+
+```bash
+git clone <repository-url>
+cd vanuatu-smart-transport
+```
+
+---
+
+## Frontend Setup
+
+```bash
+npm install
+npm start
+```
+
+Frontend runs on:
+
+```text
+http://localhost:3000
+```
+
+---
+
+## Backend Setup
+
+Navigate to backend folder:
+
+```bash
+cd backend
+```
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Create a `.env` file:
+
+```env
+DB_USER=postgres
+DB_PASSWORD=Unvtest!@25
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=vanuatu_transport
+PORT=5001
+```
+
+Start backend server:
+
+```bash
+node server.js
+```
+
+Backend runs on:
+
+```text
+http://localhost:5001
+```
+
+---
+
+# Deployment
+
+Platform:
+
+* Render
+
+Deployment Components:
+
+### Frontend Service
+
+* React application
+* Automatic deployment from GitHub
+
+### Backend Service
+
+* Node.js API
+* Automatic deployment from GitHub
+
+### Database
+
+* PostgreSQL
+
+Benefits:
+
+* Cloud hosting
+* Continuous deployment
+* Public accessibility
+* Scalability
+
+---
+
+# API Overview
+
+## Authentication
+
+### Register User
+
+```http
+POST /signup
+```
+
+Example Request:
+
+```json
+{
+  "username": "test_admin",
+  "email": "admin@example.com",
+  "password": "Admin123",
+  "role": "Admin"
+}
+```
+
+---
+
+### Login
+
+```http
+POST /login
+```
+
+---
+
+## Trips
+
+### Get All Trips
+
+```http
+GET /trips
+```
+
+### Create Trip
+
+```http
+POST /trips
+```
+
+---
+
+## Bookings
+
+### Create Booking
+
+```http
+POST /bookings
+```
+
+### Get User Bookings
+
+```http
+GET /bookings
+```
+
+---
+
+# Test Accounts
+
+### Administrator
+
+| Username   | Password |
+| ---------- | -------- |
+| testAdmin | Admin@123 |
+
+### Passenger
+
+| Username       | Password     |
+| -------------- | ------------ |
+| testPassenger | Passenger@123 |
+
+### Driver
+
+| Username    | Password  |
+| ----------- | --------- |
+| testDriver | Driver@123 |
+
+---
+
+
+# Future Improvements
+
+* Mobile application support
+* GPS tracking integration
+* Online payment gateway
+* SMS notifications
+* Advanced analytics dashboard
+* Route optimization
+
+---
+
+# Conclusion
+
+Vanuatu Smart Transport demonstrates the implementation of cloud computing technologies through a full-stack web application. The project integrates React, Node.js, PostgreSQL, GitHub, and Render to provide a scalable and accessible transportation management solution for passengers, drivers, and administrators.
