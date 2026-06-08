@@ -301,20 +301,6 @@ Benefits:
 
 ### Register User
 
-```http
-POST /signup
-```
-
-Example Request:
-
-```json
-{
-  "username": "test_admin",
-  "email": "admin@example.com",
-  "password": "Admin123",
-  "role": "Admin"
-}
-```
 
 ---
 
