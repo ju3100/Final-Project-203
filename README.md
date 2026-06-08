@@ -268,32 +268,6 @@ http://localhost:5001
 
 Platform:
 
-* Render
-
-Deployment Components:
-
-### Frontend Service
-
-* React application
-* Automatic deployment from GitHub
-
-### Backend Service
-
-* Node.js API
-* Automatic deployment from GitHub
-
-### Database
-
-* PostgreSQL
-
-Benefits:
-
-* Cloud hosting
-* Continuous deployment
-* Public accessibility
-* Scalability
-
----
 
 # API Overview
 
@@ -350,19 +324,19 @@ GET /bookings
 
 | Username   | Password |
 | ---------- | -------- |
-| testAdmin | Admin@123 |
+| Admintest | Admin@123 |
 
 ### Passenger
 
 | Username       | Password     |
 | -------------- | ------------ |
-| testPassenger | Passenger@123 |
+| Passengertest | Passenger@123 |
 
 ### Driver
 
 | Username    | Password  |
 | ----------- | --------- |
-| testDriver | Driver@123 |
+| Drivertest | Driver@123 |
 
 ---
 
